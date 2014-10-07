@@ -37,6 +37,7 @@ SCRIPTSDIR=scripts
 PACKAGESDIR?=packages
 CUSTOMFILESDIR=customfiles
 TOOLSDIR=tools
+KERNDIR=kernel
 PRUNELIST?=${TOOLSDIR}/prunelist
 PKG_STATIC?=${TOOLSDIR}/pkg-static
 #
@@ -174,7 +175,7 @@ ${_DESTDIR}:
 	@${MKDIR} ${_DESTDIR} && ${CHOWN} root:wheel ${_DESTDIR}
 
 ${_BOOTDIR}:
-	@${MKDIR} ${_BOOTDIR}/kernel ${_BOOTDIR}/modules && ${CHOWN} -R root:wheel ${_BOOTDIR}
+	@${MKDIR} ${_BOOTDIR}/${KERNDIR} ${_BOOTDIR}/modules && ${CHOWN} -R root:wheel ${_BOOTDIR}
 
 extract: destdir ${WRKDIR}/.extract_done
 ${WRKDIR}/.extract_done:
@@ -199,7 +200,7 @@ ${WRKDIR}/.extract_done:
 	@${CAT} ${BASEFILE} | ${TAR} --unlink -xpzf - -C ${_DESTDIR}
 .if !defined(FREEBSD9)
 	@${CAT} ${KERNELFILE} | ${TAR} --unlink -xpzf - -C ${_BOOTDIR}
-	@${MV} ${_BOOTDIR}/${KERNCONF}/* ${_BOOTDIR}/kernel
+	@${MV} ${_BOOTDIR}/${KERNCONF}/* ${_BOOTDIR}/${KERNDIR}
 	@${RMDIR} ${_BOOTDIR}/${KERNCONF}
 .else
 	@${CAT} ${KERNELFILE} | ${TAR} --unlink -xpzf - -C ${_ROOTDIR}
@@ -239,18 +240,18 @@ ${WRKDIR}/.install_done:
 . endif
 	@${MKDIR} ${_DISTDIR}
 . if defined(ROOTHACK)
-	@${CP} -rp ${_BOOTDIR}/kernel ${_DESTDIR}/boot
+	@${CP} -rp ${_BOOTDIR}/${KERNDIR} ${_DESTDIR}/boot
 . endif
 . if !defined(CUSTOM) && exists(${BASE}/base.txz) && exists(${BASE}/kernel.txz)
 	@${CP} ${BASE}/base.txz ${_DISTDIR}/base.txz
 	@${CP} ${BASE}/kernel.txz ${_DISTDIR}/kernel.txz
 . else
-	@${TAR} -c -C ${_DESTDIR} -J ${EXCLUDE} --exclude "boot/kernel/*" -f ${_DISTDIR}/base.txz .
-	@${TAR} -c -C ${_DESTDIR} -J ${EXCLUDE} -f ${_DISTDIR}/kernel.txz boot/kernel
+	@${TAR} -c -C ${_DESTDIR} -J ${EXCLUDE} --exclude "boot/${KERNDIR}/*" -f ${_DISTDIR}/base.txz .
+	@${TAR} -c -C ${_DESTDIR} -J ${EXCLUDE} -f ${_DISTDIR}/kernel.txz boot/${KERNDIR}
 . endif
 	@echo " done"
 . if defined(ROOTHACK)
-	@${RM} -rf ${_DESTDIR}/boot/kernel
+	@${RM} -rf ${_DESTDIR}/boot/${KERNDIR}
 . endif
 .endif
 	@${CHFLAGS} -R noschg ${_DESTDIR} > /dev/null 2> /dev/null || exit 0
@@ -453,40 +454,40 @@ boot: install prune ${WRKDIR}/.boot_done
 ${WRKDIR}/.boot_done:
 	@echo -n "Configuring boot environment ..."
 	@${MKDIR} ${WRKDIR}/disk/boot && ${CHOWN} root:wheel ${WRKDIR}/disk
-	@${RM} -f ${_BOOTDIR}/kernel/kernel.debug
-	@${CP} -rp ${_BOOTDIR}/kernel ${WRKDIR}/disk/boot
+	@${RM} -f ${_BOOTDIR}/${KERNDIR}/kernel.debug
+	@${CP} -rp ${_BOOTDIR}/${KERNDIR} ${WRKDIR}/disk/boot
 .for FILE in boot defaults loader loader.help *.rc *.4th
 	@${CP} -rp ${_DESTDIR}/boot/${FILE} ${WRKDIR}/disk/boot
 .endfor
-	@${RM} -rf ${WRKDIR}/disk/boot/kernel/*.ko ${WRKDIR}/disk/boot/kernel/*.symbols
+	@${RM} -rf ${WRKDIR}/disk/boot/${KERNDIR}/*.ko ${WRKDIR}/disk/boot/${KERNDIR}/*.symbols
 .if defined(DEBUG)
-	@test -f ${_BOOTDIR}/kernel/kernel.symbols \
-	&& ${INSTALL} -m 0555 ${_BOOTDIR}/kernel/kernel.symbols ${WRKDIR}/disk/boot/kernel >/dev/null 2>/dev/null || exit 0
+	@test -f ${_BOOTDIR}/${KERNDIR}/kernel.symbols \
+	&& ${INSTALL} -m 0555 ${_BOOTDIR}/${KERNDIR}/kernel.symbols ${WRKDIR}/disk/boot/${KERNDIR} >/dev/null 2>/dev/null || exit 0
 .endif
 .for FILE in ${BOOTMODULES}
-	@test -f ${_BOOTDIR}/kernel/${FILE}.ko \
-	&& ${INSTALL} -m 0555 ${_BOOTDIR}/kernel/${FILE}.ko ${WRKDIR}/disk/boot/kernel >/dev/null 2>/dev/null || exit 0
+	@test -f ${_BOOTDIR}/${KERNDIR}/${FILE}.ko \
+	&& ${INSTALL} -m 0555 ${_BOOTDIR}/${KERNDIR}/${FILE}.ko ${WRKDIR}/disk/boot/${KERNDIR} >/dev/null 2>/dev/null || exit 0
 . if defined(DEBUG)
-	@test -f ${_BOOTDIR}/kernel/${FILE}.ko \
-	&& ${INSTALL} -m 0555 ${_BOOTDIR}/kernel/${FILE}.ko.symbols ${WRKDIR}/disk/boot/kernel >/dev/null 2>/dev/null || exit 0
+	@test -f ${_BOOTDIR}/${KERNDIR}/${FILE}.ko \
+	&& ${INSTALL} -m 0555 ${_BOOTDIR}/${KERNDIR}/${FILE}.ko.symbols ${WRKDIR}/disk/boot/${KERNDIR} >/dev/null 2>/dev/null || exit 0
 . endif
 .endfor
 	@${MKDIR} -p ${_DESTDIR}/boot/modules
 .for FILE in ${MFSMODULES}
-	@test -f ${_BOOTDIR}/kernel/${FILE}.ko \
-	&& ${INSTALL} -m 0555 ${_BOOTDIR}/kernel/${FILE}.ko ${_DESTDIR}/boot/modules >/dev/null 2>/dev/null || exit 0
+	@test -f ${_BOOTDIR}/${KERNDIR}/${FILE}.ko \
+	&& ${INSTALL} -m 0555 ${_BOOTDIR}/${KERNDIR}/${FILE}.ko ${_DESTDIR}/boot/modules >/dev/null 2>/dev/null || exit 0
 . if defined(DEBUG)
-	@test -f ${_BOOTDIR}/kernel/${FILE}.ko.symbols \
-	&& ${INSTALL} -m 0555 ${_BOOTDIR}/kernel/${FILE}.ko.symbols ${_DESTDIR}/boot/modules >/dev/null 2>/dev/null || exit 0
+	@test -f ${_BOOTDIR}/${KERNDIR}/${FILE}.ko.symbols \
+	&& ${INSTALL} -m 0555 ${_BOOTDIR}/${KERNDIR}/${FILE}.ko.symbols ${_DESTDIR}/boot/modules >/dev/null 2>/dev/null || exit 0
 . endif
 .endfor
 .if defined(ROOTHACK)
 	@echo -n "Installing tmpfs module for roothack ..."
 	@${MKDIR} -p ${_ROOTDIR}/boot/modules
-	@${INSTALL} -m 0666 ${_BOOTDIR}/kernel/tmpfs.ko ${_ROOTDIR}/boot/modules
+	@${INSTALL} -m 0666 ${_BOOTDIR}/${KERNDIR}/tmpfs.ko ${_ROOTDIR}/boot/modules
 	@echo " done"
 .endif
-	@${RM} -rf ${_BOOTDIR}/kernel ${_BOOTDIR}/*.symbols
+	@${RM} -rf ${_BOOTDIR}/${KERNDIR} ${_BOOTDIR}/*.symbols
 	@${TOUCH} ${WRKDIR}/.boot_done
 	@echo " done"
 
@@ -501,7 +502,7 @@ ${WRKDIR}/.mfsroot_done:
 	@${MAKEFS} -t ffs -m ${MFSROOT_MAXSIZE} -f ${MFSROOT_FREE_INODES} -b ${MFSROOT_FREE_BLOCKS} ${WRKDIR}/disk/mfsroot ${_ROOTDIR} > /dev/null
 	@${RM} -rf ${WRKDIR}/mnt ${_DESTDIR}
 	@${GZIP} -9 -f ${WRKDIR}/disk/mfsroot
-	@${GZIP} -9 -f ${WRKDIR}/disk/boot/kernel/kernel
+	@${GZIP} -9 -f ${WRKDIR}/disk/boot/${KERNDIR}/kernel
 	@if [ -f "${CFGDIR}/loader.conf" ]; then \
 		${INSTALL} -m 0644 ${CFGDIR}/loader.conf ${WRKDIR}/disk/boot/loader.conf; \
 	else \
