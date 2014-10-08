@@ -37,7 +37,7 @@ SCRIPTSDIR=scripts
 PACKAGESDIR?=packages
 CUSTOMFILESDIR=customfiles
 TOOLSDIR=tools
-KERNDIR=kernel
+KERNDIR?=kernel
 PRUNELIST?=${TOOLSDIR}/prunelist
 PKG_STATIC?=${TOOLSDIR}/pkg-static
 #
