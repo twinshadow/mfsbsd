@@ -175,7 +175,7 @@ ${_DESTDIR}:
 	@${MKDIR} ${_DESTDIR} && ${CHOWN} root:wheel ${_DESTDIR}
 
 ${_BOOTDIR}:
-	@${MKDIR} ${_BOOTDIR}/${KERNDIR} ${_BOOTDIR}/modules && ${CHOWN} -R root:wheel ${_BOOTDIR}
+	@${MKDIR} ${_BOOTDIR}/kernel ${_BOOTDIR}/modules && ${CHOWN} -R root:wheel ${_BOOTDIR}
 
 extract: destdir ${WRKDIR}/.extract_done
 ${WRKDIR}/.extract_done:
@@ -200,7 +200,7 @@ ${WRKDIR}/.extract_done:
 	@${CAT} ${BASEFILE} | ${TAR} --unlink -xpzf - -C ${_DESTDIR}
 .if !defined(FREEBSD9)
 	@${CAT} ${KERNELFILE} | ${TAR} --unlink -xpzf - -C ${_BOOTDIR}
-	@${MV} ${_BOOTDIR}/${KERNCONF}/* ${_BOOTDIR}/${KERNDIR}
+	@${MV} ${_BOOTDIR}/${KERNCONF}/* ${_BOOTDIR}/kernel
 	@${RMDIR} ${_BOOTDIR}/${KERNCONF}
 .else
 	@${CAT} ${KERNELFILE} | ${TAR} --unlink -xpzf - -C ${_ROOTDIR}
@@ -240,7 +240,7 @@ ${WRKDIR}/.install_done:
 . endif
 	@${MKDIR} ${_DISTDIR}
 . if defined(ROOTHACK)
-	@${CP} -rp ${_BOOTDIR}/${KERNDIR} ${_DESTDIR}/boot
+	@${CP} -rp ${_BOOTDIR}/kernel ${_DESTDIR}/boot
 . endif
 . if !defined(CUSTOM) && exists(${BASE}/base.txz) && exists(${BASE}/kernel.txz)
 	@${CP} ${BASE}/base.txz ${_DISTDIR}/base.txz
@@ -462,14 +462,14 @@ ${WRKDIR}/.boot_done:
 	@${RM} -rf ${WRKDIR}/disk/boot/${KERNDIR}/*.ko ${WRKDIR}/disk/boot/${KERNDIR}/*.symbols
 .if defined(DEBUG)
 	@test -f ${_BOOTDIR}/${KERNDIR}/kernel.symbols \
-	&& ${INSTALL} -m 0555 ${_BOOTDIR}/${KERNDIR}/kernel.symbols ${WRKDIR}/disk/boot/${KERNDIR} >/dev/null 2>/dev/null || exit 0
+	&& ${INSTALL} -m 0555 ${_BOOTDIR}/${KERNDIR}/kernel.symbols ${WRKDIR}/disk/boot/kernel >/dev/null 2>/dev/null || exit 0
 .endif
 .for FILE in ${BOOTMODULES}
 	@test -f ${_BOOTDIR}/${KERNDIR}/${FILE}.ko \
-	&& ${INSTALL} -m 0555 ${_BOOTDIR}/${KERNDIR}/${FILE}.ko ${WRKDIR}/disk/boot/${KERNDIR} >/dev/null 2>/dev/null || exit 0
+	&& ${INSTALL} -m 0555 ${_BOOTDIR}/${KERNDIR}/${FILE}.ko ${WRKDIR}/disk/boot/kernel >/dev/null 2>/dev/null || exit 0
 . if defined(DEBUG)
 	@test -f ${_BOOTDIR}/${KERNDIR}/${FILE}.ko \
-	&& ${INSTALL} -m 0555 ${_BOOTDIR}/${KERNDIR}/${FILE}.ko.symbols ${WRKDIR}/disk/boot/${KERNDIR} >/dev/null 2>/dev/null || exit 0
+	&& ${INSTALL} -m 0555 ${_BOOTDIR}/${KERNDIR}/${FILE}.ko.symbols ${WRKDIR}/disk/boot/kernel >/dev/null 2>/dev/null || exit 0
 . endif
 .endfor
 	@${MKDIR} -p ${_DESTDIR}/boot/modules
